@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaborative Editor</title>
+</head>
+<body>
+    <textarea id="editor" rows="20" cols="100"></textarea>
+
+    <!-- Socket.io and Yjs scripts -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/yjs@13.5.16/dist/yjs.min.js"></script>
+    
+    <script>
+        if (typeof Y === 'undefined') {
+            console.error('Yjs library is not loaded.');
+        } else {
+            const socket = io(); // Connect to the Socket.IO server
+            const editor = document.getElementById('editor');
+
+            // Create Yjs document
+            const doc = new Y.Doc();
+            const yText = doc.getText('text');
+
+            // Handle document updates from the server
+            socket.on('documentUpdate', (data) => {
+                yText.applyUpdate(data.update);
+            });
+
+            // Handle editor input
+            editor.addEventListener('input', () => {
+                yText.delete(0, yText.length);
+                yText.insert(0, editor.value);
+                socket.emit('editorData', { update: yText.toUpdate(), room: 'my-roomname' });
+            });
+
+            // Sync editor value with Yjs document
+            yText.observe(() => {
+                editor.value = yText.toString();
+            });
+
+            // Join a room
+            socket.emit('joinRoom', 'my-roomname');
+        }
+    </script>
+</body>
+</html>
